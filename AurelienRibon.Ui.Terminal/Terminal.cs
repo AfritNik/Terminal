@@ -19,6 +19,8 @@ namespace AurelienRibon.Ui.Terminal {
 
 		public Terminal() {
 			IsUndoEnabled = false;
+			AcceptsReturn = false;
+			AcceptsTab = true;
 			Mode = Modes.SIMPLE;
 			CommandLog = new List<Command>();
 			PreviewKeyDown += new KeyEventHandler(OnPreviewKeyDown);
