@@ -94,7 +94,7 @@ namespace AurelienRibon.Ui.Terminal {
 						InsertNewPrompt();
 						break;
 					case Modes.COMMAND:
-						Command cmd = new Command(line);
+						Command cmd = TerminalUtils.ParseCommandLine(line);
 						CommandLog.Add(cmd);
 						indexInLog = CommandLog.Count;
 						RaiseCommandEntered(cmd);
@@ -121,31 +121,6 @@ namespace AurelienRibon.Ui.Terminal {
 		private void RaiseCommandEntered(Command command) {
 			if (CommandEntered != null)
 				CommandEntered(this, new CommandEventArgs(command));
-		}
-
-		// --------------------------------------------------------------------
-
-		public class Command {
-			public string Raw { get; private set; }
-			public string Name { get; private set; }
-			public string[] Args { get; private set; }
-
-			public Command(string rawLine) {
-				Raw = rawLine;
-				List<string> args = new List<string>();
-				Match m = Regex.Match(rawLine.Trim() + " ", @"^(.+?\s+|.+?$)(.*)");
-				if (m.Success) {
-					Name = m.Groups[1].Value.Trim();
-					string argsLine = m.Groups[2].Value.Trim();
-					Match m2 = Regex.Match(argsLine + " ", @""".*?""\s+|.+?\s+");
-					while (m2.Success) {
-						string arg = Regex.Replace(m2.Value.Trim(), @"^""(.*?)""$", "$1");
-						args.Add(arg);
-						m2 = m2.NextMatch();
-					}
-					Args = args.ToArray();
-				}
-			}
 		}
 	}
 }
