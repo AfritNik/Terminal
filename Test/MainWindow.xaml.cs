@@ -19,12 +19,14 @@ namespace Test {
 			InitializeComponent();
 
 			Loaded += (s, e) => {
-				Term.Mode = Terminal.Modes.COMMAND;
 				Term.CommandEntered += (ss, ee) => {
-					string msg = Term.GetLastCommandDescription("Command is '{0}'", " with args '{0}'", ", '{0}'", ".");
-					Term.Text += msg + "\n";
+					string msg = ee.Command.GetDescription("Command is '{0}'", " with args '{0}'", ", '{0}'", ".");
+					Term.Text += msg;
 					Term.InsertNewPrompt();
 				};
+				Term.RegisteredCommands.Add("hello");
+				Term.RegisteredCommands.Add("world");
+				Term.RegisteredCommands.Add("helloworld");
 			};
 		}
 	}

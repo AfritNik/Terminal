@@ -9,9 +9,10 @@ using System.Media;
 
 namespace AurelienRibon.Ui.Terminal {
 	public class Terminal : TextBox {
-		public enum Modes { SIMPLE, COMMAND }
-		public Modes Mode { get; set; }
+		public List<string> RegisteredCommands { get; private set; }
 		public List<Command> CommandLog { get; private set; }
+		public bool IsPromptInsertedAtLaunch { get; set; }
+		public bool IsSystemBeepEnabled { get; set; }
 
 		private bool isInputEnabled = false;
 		private int lastPomptIndex = -1;
@@ -20,33 +21,32 @@ namespace AurelienRibon.Ui.Terminal {
 		public Terminal() {
 			IsUndoEnabled = false;
 			AcceptsReturn = false;
-			AcceptsTab = true;
-			Mode = Modes.SIMPLE;
+			AcceptsTab = false;
+
+			RegisteredCommands = new List<string>();
 			CommandLog = new List<Command>();
+			IsPromptInsertedAtLaunch = true;
+			IsSystemBeepEnabled = true;
+
 			PreviewKeyDown += new KeyEventHandler(OnPreviewKeyDown);
-			Loaded += (s, e) => { InsertNewPrompt(); };
+			Loaded += (s, e) => {
+				if (IsPromptInsertedAtLaunch)
+					InsertNewPrompt();
+			};
 		}
 
 		public void InsertNewPrompt() {
-			Text += "\n" + "> ";
+			if (Text.Length == 0)
+				Text += "> ";
+			else
+				Text += Text.EndsWith("\n") ? "\n> " : "\n\n> ";
 			CaretIndex = Text.Length;
-			lastPomptIndex = CaretIndex;
+			lastPomptIndex = Text.Length;
 			isInputEnabled = true;
-			Focus();
 		}
 
-		public string GetLastCommandDescription(string commandFormat, string firstArgFormat, string otherArgsFormat, string end) {
-			if (CommandLog.Count == 0)
-				return "Command log is empty";
-			Command cmd = CommandLog[CommandLog.Count - 1];
-			string ret = string.Format(commandFormat, cmd.Name);
-			if (cmd.Args.Length > 0)
-				ret += string.Format(firstArgFormat, cmd.Args[0]);
-			for (int i = 1; i < cmd.Args.Length; i++)
-				ret += string.Format(otherArgsFormat, cmd.Args[i]);
-			return ret + end;
-		}
-
+		// --------------------------------------------------------------------
+		// EVENT HANDLERS
 		// --------------------------------------------------------------------
 
 		private void OnPreviewKeyDown(object sender, KeyEventArgs e) {
@@ -55,7 +55,8 @@ namespace AurelienRibon.Ui.Terminal {
 
 			if (!isInputEnabled) {
 				e.Handled = true;
-				SystemSounds.Beep.Play();
+				if (IsSystemBeepEnabled)
+					SystemSounds.Beep.Play();
 				return;
 			}
 
@@ -84,22 +85,36 @@ namespace AurelienRibon.Ui.Terminal {
 				e.Handled = true;
 			}
 
+			// Push en ENTER key
 			if (e.Key == Key.Enter) {
 				string line = Text.Substring(lastPomptIndex);
 				Text += "\n";
 				isInputEnabled = false;
 				lastPomptIndex = int.MaxValue;
-				switch (Mode) {
-					case Modes.SIMPLE:
-						InsertNewPrompt();
-						break;
-					case Modes.COMMAND:
-						Command cmd = TerminalUtils.ParseCommandLine(line);
-						CommandLog.Add(cmd);
-						indexInLog = CommandLog.Count;
-						RaiseCommandEntered(cmd);
-						break;
+
+				Command cmd = TerminalUtils.ParseCommandLine(line);
+				CommandLog.Add(cmd);
+				indexInLog = CommandLog.Count;
+				RaiseCommandEntered(cmd);
+				e.Handled = true;
+
+			// Push on TAB key
+			} else if (e.Key == Key.Tab) {
+				if (CaretIndex != Text.Length) {
+					e.Handled = true;
+					return;
 				}
+
+				string line = Text.Substring(lastPomptIndex);
+				string[] commands = GetAssociatedCommands(line);
+
+				if (commands.Length > 0) {
+					Text = Text.Remove(lastPomptIndex);
+					Text += GetCommonPrefix(commands);
+					CaretIndex = Text.Length;
+				}
+
+				e.Handled = true;
 			}
 		}
 
@@ -108,6 +123,32 @@ namespace AurelienRibon.Ui.Terminal {
 			return ret + suffix;
 		}
 
+		private string[] GetAssociatedCommands(string prefix) {
+			List<string> ret = new List<string>();
+			foreach (var cmd in RegisteredCommands)
+				if (cmd.StartsWith(prefix))
+					ret.Add(cmd);
+			return ret.ToArray();
+		}
+
+		private string GetShortestString(string[] strs) {
+			string ret = strs[0];
+			foreach (string str in strs)
+				ret = str.Length < ret.Length ? str : ret;
+			return ret;
+		}
+
+		private string GetCommonPrefix(string[] strs) {
+			string shortestStr = GetShortestString(strs);
+			for (int i = 0; i < shortestStr.Length; i++)
+				foreach (string str in strs)
+					if (str[i] != shortestStr[i])
+						return shortestStr.Substring(0, i);
+			return shortestStr;
+		}
+
+		// --------------------------------------------------------------------
+		// CUSTOM EVENTS
 		// --------------------------------------------------------------------
 
 		public event EventHandler<CommandEventArgs> CommandEntered;
