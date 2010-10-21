@@ -13,9 +13,10 @@ namespace AurelienRibon.Ui.Terminal {
 		public List<Command> CommandLog { get; private set; }
 		public bool IsPromptInsertedAtLaunch { get; set; }
 		public bool IsSystemBeepEnabled { get; set; }
+		public int LastPomptIndex { get; private set; }
+		public string Prompt { get; set; }
+		public bool IsInputEnabled { get; private set; }
 
-		private bool isInputEnabled = false;
-		private int lastPomptIndex = -1;
 		private int indexInLog = 0;
 
 		public Terminal() {
@@ -27,6 +28,9 @@ namespace AurelienRibon.Ui.Terminal {
 			CommandLog = new List<Command>();
 			IsPromptInsertedAtLaunch = true;
 			IsSystemBeepEnabled = true;
+			LastPomptIndex = -1;
+			Prompt = "> ";
+			IsInputEnabled = false;
 
 			PreviewKeyDown += new KeyEventHandler(OnPreviewKeyDown);
 			Loaded += (s, e) => {
@@ -36,13 +40,16 @@ namespace AurelienRibon.Ui.Terminal {
 		}
 
 		public void InsertNewPrompt() {
-			if (Text.Length == 0)
-				Text += "> ";
-			else
-				Text += Text.EndsWith("\n") ? "\n> " : "\n\n> ";
+			if (Text.Length > 0)
+				Text += Text.EndsWith("\n") ? "\n" : "\n\n";
+			Text += Prompt;
 			CaretIndex = Text.Length;
-			lastPomptIndex = Text.Length;
-			isInputEnabled = true;
+			LastPomptIndex = Text.Length;
+			IsInputEnabled = true;
+		}
+
+		public void InsertTextBeforePrompt(string text) {
+			Text = Text.Insert(LastPomptIndex - Prompt.Length - 1, text);
 		}
 
 		// --------------------------------------------------------------------
@@ -53,21 +60,21 @@ namespace AurelienRibon.Ui.Terminal {
 			Terminal term = (Terminal)sender;
 			int initialLength = term.Text.Length;
 
-			if (!isInputEnabled) {
+			if (!IsInputEnabled) {
 				e.Handled = true;
 				if (IsSystemBeepEnabled)
 					SystemSounds.Beep.Play();
 				return;
 			}
 
-			if (CaretIndex < lastPomptIndex
-				|| (CaretIndex == lastPomptIndex && e.Key == Key.Back)
-				|| (CaretIndex == lastPomptIndex && e.Key == Key.Left)) {
+			if (CaretIndex < LastPomptIndex
+				|| (CaretIndex == LastPomptIndex && e.Key == Key.Back)
+				|| (CaretIndex == LastPomptIndex && e.Key == Key.Left)) {
 				CaretIndex = Text.Length;
 				e.Handled = true;
 				SystemSounds.Beep.Play();
 				return;
-			} else if (CaretIndex >= lastPomptIndex && e.Key == Key.Up) {
+			} else if (CaretIndex >= LastPomptIndex && e.Key == Key.Up) {
 				if (indexInLog > 0)
 					indexInLog--;
 				if (CommandLog.Count > 0) {
@@ -75,7 +82,7 @@ namespace AurelienRibon.Ui.Terminal {
 					CaretIndex = Text.Length;
 				}
 				e.Handled = true;
-			} else if (CaretIndex >= lastPomptIndex && e.Key == Key.Down) {
+			} else if (CaretIndex >= LastPomptIndex && e.Key == Key.Down) {
 				if (indexInLog < CommandLog.Count - 1)
 					indexInLog++;
 				if (CommandLog.Count > 0) {
@@ -87,10 +94,10 @@ namespace AurelienRibon.Ui.Terminal {
 
 			// Push en ENTER key
 			if (e.Key == Key.Enter) {
-				string line = Text.Substring(lastPomptIndex);
+				string line = Text.Substring(LastPomptIndex);
 				Text += "\n";
-				isInputEnabled = false;
-				lastPomptIndex = int.MaxValue;
+				IsInputEnabled = false;
+				LastPomptIndex = int.MaxValue;
 
 				Command cmd = TerminalUtils.ParseCommandLine(line);
 				CommandLog.Add(cmd);
@@ -98,18 +105,19 @@ namespace AurelienRibon.Ui.Terminal {
 				RaiseCommandEntered(cmd);
 				e.Handled = true;
 
-			// Push on TAB key
+				// Push on TAB key
 			} else if (e.Key == Key.Tab) {
 				if (CaretIndex != Text.Length) {
 					e.Handled = true;
 					return;
 				}
 
-				string line = Text.Substring(lastPomptIndex);
+				string line = Text.Substring(LastPomptIndex);
 				string[] commands = GetAssociatedCommands(line);
 
 				if (commands.Length > 0) {
-					Text = Text.Remove(lastPomptIndex);
+					if (CaretIndex > LastPomptIndex)
+						Text = Text.Remove(LastPomptIndex);
 					Text += GetCommonPrefix(commands);
 					CaretIndex = Text.Length;
 				}
@@ -119,14 +127,14 @@ namespace AurelienRibon.Ui.Terminal {
 		}
 
 		private string GetTextWithPromptSuffix(string suffix) {
-			string ret = Text.Substring(0, lastPomptIndex);
+			string ret = Text.Substring(0, LastPomptIndex);
 			return ret + suffix;
 		}
 
 		private string[] GetAssociatedCommands(string prefix) {
 			List<string> ret = new List<string>();
 			foreach (var cmd in RegisteredCommands)
-				if (cmd.StartsWith(prefix))
+				if (cmd.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase))
 					ret.Add(cmd);
 			return ret.ToArray();
 		}
@@ -142,7 +150,7 @@ namespace AurelienRibon.Ui.Terminal {
 			string shortestStr = GetShortestString(strs);
 			for (int i = 0; i < shortestStr.Length; i++)
 				foreach (string str in strs)
-					if (str[i] != shortestStr[i])
+					if (char.ToLower(str[i]) != char.ToLower(shortestStr[i]))
 						return shortestStr.Substring(0, i);
 			return shortestStr;
 		}

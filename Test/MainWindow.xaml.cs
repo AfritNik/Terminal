@@ -27,6 +27,9 @@ namespace Test {
 				Term.RegisteredCommands.Add("hello");
 				Term.RegisteredCommands.Add("world");
 				Term.RegisteredCommands.Add("helloworld");
+				Term.RegisteredCommands.Add("ls");
+				Term.RegisteredCommands.Add("cd");
+				Term.RegisteredCommands.Add("pwd");
 			};
 		}
 	}
