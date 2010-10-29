@@ -54,7 +54,9 @@ namespace AurelienRibon.Ui.Terminal {
 		}
 
 		public void InsertTextBeforePrompt(string text) {
-			Text = Text.Insert(LastPomptIndex - Prompt.Length - 1, text);
+			String insertedText = text + "\n";
+			Text = Text.Insert(LastPomptIndex - Prompt.Length, insertedText);
+			CaretIndex = Text.Length;
 		}
 
 		// --------------------------------------------------------------------
@@ -112,8 +114,9 @@ namespace AurelienRibon.Ui.Terminal {
 			}
 
 			// If input has not yet been discarded, test the key for special inputs.
-			// ENTER  => validates the input
-			// TAB    => launches command completion with registered commands
+			// ENTER   => validates the input
+			// TAB     => launches command completion with registered commands
+			// CTRL+C  => raises an abort request event
 			if (!e.Handled) {
 				switch (e.Key) {
 					case Key.Enter:
@@ -123,6 +126,10 @@ namespace AurelienRibon.Ui.Terminal {
 					case Key.Tab:
 						HandleTabKey();
 						e.Handled = true;
+						break;
+					case Key.C:
+						if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
+							RaiseAbortRequested();
 						break;
 				}
 			}
@@ -224,12 +231,19 @@ namespace AurelienRibon.Ui.Terminal {
 		// CUSTOM EVENTS
 		// --------------------------------------------------------------------
 
+		public event EventHandler<EventArgs> AbortRequested;
 		public event EventHandler<CommandEventArgs> CommandEntered;
+
 		public class CommandEventArgs : EventArgs {
 			public Command Command { get; private set; }
 			public CommandEventArgs(Command command) {
 				Command = command;
 			}
+		}
+
+		private void RaiseAbortRequested() {
+			if (AbortRequested != null)
+				AbortRequested(this, new EventArgs());
 		}
 
 		private void RaiseCommandEntered(Command command) {
