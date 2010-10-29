@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Media;
+using System.Windows.Threading;
 
 namespace AurelienRibon.Ui.Terminal {
 	public class Terminal : TextBox {
@@ -38,6 +39,10 @@ namespace AurelienRibon.Ui.Terminal {
 				if (IsPromptInsertedAtLaunch)
 					InsertNewPrompt();
 			};
+
+			TextChanged += (s, e) => {
+				ScrollToEnd();
+			};
 		}
 
 		// --------------------------------------------------------------------
@@ -54,9 +59,13 @@ namespace AurelienRibon.Ui.Terminal {
 		}
 
 		public void InsertTextBeforePrompt(string text) {
+			int oldPromptIndex = LastPomptIndex;
 			String insertedText = text + "\n";
-			Text = Text.Insert(LastPomptIndex - Prompt.Length, insertedText);
-			CaretIndex = Text.Length;
+			Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() => {
+				Text = Text.Insert(LastPomptIndex - Prompt.Length, insertedText);
+				CaretIndex = Text.Length;
+				LastPomptIndex = oldPromptIndex + insertedText.Length;
+			}));
 		}
 
 		// --------------------------------------------------------------------

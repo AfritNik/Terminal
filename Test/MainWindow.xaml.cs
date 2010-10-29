@@ -12,6 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using AurelienRibon.Ui.Terminal;
+using System.Timers;
 
 namespace Test {
 	public partial class MainWindow : Window {
@@ -31,6 +32,19 @@ namespace Test {
 				Term.RegisteredCommands.Add("cd");
 				Term.RegisteredCommands.Add("pwd");
 			};
+		}
+
+		private void Button_Click(object sender, RoutedEventArgs e) {
+			int cnt = 0;
+			Timer timer = new Timer(1000);
+			timer.Elapsed += (ss, ee) => {
+				cnt++;
+				if (cnt == 10)
+					timer.Stop();
+
+				Term.InsertTextBeforePrompt("Hello world ! Number " + cnt);
+			};
+			timer.Start();
 		}
 	}
 }
