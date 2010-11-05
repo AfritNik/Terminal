@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Media;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Media;
-using System.Windows.Threading;
 
 namespace AurelienRibon.Ui.Terminal {
 	public class Terminal : TextBox {
 		protected enum CommandHistoryDirection { BACKWARD, FORWARD }
 
-		public List<string> RegisteredCommands { get; private set; }
-		public List<Command> CommandLog { get; private set; }
 		public bool IsPromptInsertedAtLaunch { get; set; }
 		public bool IsSystemBeepEnabled { get; set; }
-		public int LastPomptIndex { get; private set; }
 		public string Prompt { get; set; }
+
+		public List<string> RegisteredCommands { get; private set; }
+		public List<Command> CommandLog { get; private set; }
+		public int LastPomptIndex { get; private set; }
 		public bool IsInputEnabled { get; private set; }
 
 		private int indexInLog = 0;
@@ -51,21 +48,19 @@ namespace AurelienRibon.Ui.Terminal {
 
 		public void InsertNewPrompt() {
 			if (Text.Length > 0)
-				Text += Text.EndsWith("\n") ? "\n" : "\n\n";
+				Text += Text.EndsWith("\n") ? "" : "\n";
 			Text += Prompt;
 			CaretIndex = Text.Length;
 			LastPomptIndex = Text.Length;
 			IsInputEnabled = true;
 		}
 
-		public void InsertTextBeforePrompt(string text) {
+		public void InsertLineBeforePrompt(string text) {
 			int oldPromptIndex = LastPomptIndex;
 			String insertedText = text + "\n";
-			Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() => {
-				Text = Text.Insert(LastPomptIndex - Prompt.Length, insertedText);
-				CaretIndex = Text.Length;
-				LastPomptIndex = oldPromptIndex + insertedText.Length;
-			}));
+			Text = Text.Insert(LastPomptIndex - Prompt.Length, insertedText);
+			CaretIndex = Text.Length;
+			LastPomptIndex = oldPromptIndex + insertedText.Length;
 		}
 
 		// --------------------------------------------------------------------
@@ -185,17 +180,38 @@ namespace AurelienRibon.Ui.Terminal {
 		}
 
 		protected virtual void HandleTabKey() {
-			if (CaretIndex != Text.Length)
+			// Command completion works only if caret is at last character
+			// and if the user already typed something.
+			if (CaretIndex != Text.Length || CaretIndex == LastPomptIndex)
 				return;
 
+			// Get command name and associated comands
 			string line = Text.Substring(LastPomptIndex);
 			string[] commands = GetAssociatedCommands(line);
 
+			// If some associated command exist...
 			if (commands.Length > 0) {
-				if (CaretIndex > LastPomptIndex)
+				// Get the commands common prefix
+				string commonPrefix = GetCommonPrefix(commands);
+				// If there is no more autocompletion available...
+				if (commonPrefix == line) {
+					// If there are more than one command to print
+					if (commands.Length > 1) {
+						// Print every associated command and insert a new prompt
+						foreach (string cmd in commands)
+							Text += "\n" + cmd;
+						InsertNewPrompt();
+						Text += line;
+						CaretIndex = Text.Length;
+					}
+				} else {
+					// Erase the user input
 					Text = Text.Remove(LastPomptIndex);
-				Text += GetCommonPrefix(commands);
-				CaretIndex = Text.Length;
+					// Insert the common prefix
+					Text += commonPrefix;
+					// Set the caret at the end of the text
+					CaretIndex = Text.Length;
+				}
 			}
 		}
 

@@ -13,6 +13,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using AurelienRibon.Ui.Terminal;
 using System.Timers;
+using System.Windows.Threading;
 
 namespace Test {
 	public partial class MainWindow : Window {
@@ -42,7 +43,9 @@ namespace Test {
 				if (cnt == 10)
 					timer.Stop();
 
-				Term.InsertTextBeforePrompt("Hello world ! Number " + cnt);
+				Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() => {
+					Term.InsertLineBeforePrompt("Hello world ! Number " + cnt);
+				}));
 			};
 			timer.Start();
 		}
