@@ -20,6 +20,8 @@ namespace Test {
 		public MainWindow() {
 			InitializeComponent();
 
+			Term.Prompt = "\n> ";
+
 			Loaded += (s, e) => {
 				Term.CommandEntered += (ss, ee) => {
 					string msg = ee.Command.GetDescription("Command is '{0}'", " with args '{0}'", ", '{0}'", ".");
@@ -44,7 +46,7 @@ namespace Test {
 					timer.Stop();
 
 				Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() => {
-					Term.InsertLineBeforePrompt("Hello world ! Number " + cnt);
+					Term.InsertLineBeforePrompt("Hello world ! Number " + cnt + "\r\n");
 				}));
 			};
 			timer.Start();

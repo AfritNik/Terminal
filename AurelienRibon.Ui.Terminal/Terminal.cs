@@ -57,7 +57,7 @@ namespace AurelienRibon.Ui.Terminal {
 
 		public void InsertLineBeforePrompt(string text) {
 			int oldPromptIndex = LastPomptIndex;
-			String insertedText = text + "\n";
+			String insertedText = text + (text.EndsWith("\n") ? "" : "\n");
 			Text = Text.Insert(LastPomptIndex - Prompt.Length, insertedText);
 			CaretIndex = Text.Length;
 			LastPomptIndex = oldPromptIndex + insertedText.Length;
