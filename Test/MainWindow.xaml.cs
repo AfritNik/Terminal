@@ -20,7 +20,7 @@ namespace Test {
 		public MainWindow() {
 			InitializeComponent();
 
-			Term.Prompt = "\n> ";
+			Term.Prompt = "> ";
 
 			Loaded += (s, e) => {
 				Term.CommandEntered += (ss, ee) => {
@@ -28,6 +28,11 @@ namespace Test {
 					Term.Text += msg;
 					Term.InsertNewPrompt();
 				};
+
+				Term.AbortRequested += (ss, ee) => {
+					MessageBox.Show("Abort !");
+				};
+
 				Term.RegisteredCommands.Add("hello");
 				Term.RegisteredCommands.Add("world");
 				Term.RegisteredCommands.Add("helloworld");

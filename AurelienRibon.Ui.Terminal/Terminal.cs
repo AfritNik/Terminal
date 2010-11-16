@@ -68,6 +68,15 @@ namespace AurelienRibon.Ui.Terminal {
 		// --------------------------------------------------------------------
 
 		protected override void OnPreviewKeyDown(KeyEventArgs e) {
+			// If Ctrl+C is entered, raise an abortrequested event !
+			if (e.Key == Key.C) {
+				if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) {
+					RaiseAbortRequested();
+					e.Handled = true;
+					return;
+				}
+			}
+
 			// Store the length of Text before any input processing.
 			int initialLength = Text.Length;
 
@@ -130,10 +139,6 @@ namespace AurelienRibon.Ui.Terminal {
 					case Key.Tab:
 						HandleTabKey();
 						e.Handled = true;
-						break;
-					case Key.C:
-						if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
-							RaiseAbortRequested();
 						break;
 				}
 			}
