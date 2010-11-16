@@ -20,7 +20,7 @@ namespace Test {
 		public MainWindow() {
 			InitializeComponent();
 
-			Term.Prompt = "> ";
+			Term.Prompt = "\n> ";
 
 			Loaded += (s, e) => {
 				Term.CommandEntered += (ss, ee) => {
@@ -39,6 +39,13 @@ namespace Test {
 				Term.RegisteredCommands.Add("ls");
 				Term.RegisteredCommands.Add("cd");
 				Term.RegisteredCommands.Add("pwd");
+
+				Term.Text += "Welcome !\n";
+				Term.Text += "Hit tab to complete your current command.\n";
+				Term.Text += "Use ctrl+c to raise an AbortRequested event.\n\n";
+				Term.Text += "Available (fake) commands are:\n";
+				Term.RegisteredCommands.ForEach(cmd => Term.Text += "  - " + cmd + "\n");
+				Term.InsertNewPrompt();
 			};
 		}
 

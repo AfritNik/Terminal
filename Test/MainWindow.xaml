@@ -10,7 +10,7 @@
 		</Grid.RowDefinitions>
 
 		<term:Terminal Grid.Row="0" x:Name="Term" FontFamily="Courier New" FontSize="12"
-				IsPromptInsertedAtLaunch="True" IsSystemBeepEnabled="True"
+				IsPromptInsertedAtLaunch="False" IsSystemBeepEnabled="True"
 				VerticalScrollBarVisibility="Visible" />
 
 		<Button Grid.Row="1" Content="Add content for 10 seconds" Margin="0,5,0,0"
