@@ -91,7 +91,8 @@ namespace AurelienRibon.Ui.Terminal {
 			// Test the caret position.
 			//
 			// 1. If located before the last prompt index
-			//    ==> Warn, set the caret at the end of input text, discard the input.
+			//    ==> Warn, set the caret at the end of input text, add text, discard the input
+			//        if user tries to erase text, else process it.
 			//
 			// 2. If located at the last prompt index and user tries to erase text
 			//    ==> Warn, discard the input.
@@ -109,7 +110,9 @@ namespace AurelienRibon.Ui.Terminal {
 				if (IsSystemBeepEnabled)
 					SystemSounds.Beep.Play();
 				CaretIndex = Text.Length;
-				e.Handled = true;
+				e.Handled = false;
+				if (e.Key == Key.Back || e.Key == Key.Delete)
+					e.Handled = true;
 			} else if (CaretIndex == LastPomptIndex && e.Key == Key.Back) {
 				if (IsSystemBeepEnabled)
 					SystemSounds.Beep.Play();
