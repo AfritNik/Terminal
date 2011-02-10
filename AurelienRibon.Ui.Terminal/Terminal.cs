@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Media;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.IO;
 
 namespace AurelienRibon.Ui.Terminal {
 	public class Terminal : TextBox {
@@ -193,7 +194,7 @@ namespace AurelienRibon.Ui.Terminal {
 			if (CaretIndex != Text.Length || CaretIndex == LastPomptIndex)
 				return;
 
-			// Get command name and associated comands
+			// Get command name and associated commands
 			string line = Text.Substring(LastPomptIndex);
 			string[] commands = GetAssociatedCommands(line);
 
@@ -220,12 +221,54 @@ namespace AurelienRibon.Ui.Terminal {
 					// Set the caret at the end of the text
 					CaretIndex = Text.Length;
 				}
+				return;
+			}
+
+			// If no command exists, try path completion
+			if (line.Contains("\"") && line.Split('"').Length % 2 == 0) {
+				int idx = line.LastIndexOf('"');
+				string prefix = line.Substring(0, idx + 1);
+				string suffix = line.Substring(idx + 1, line.Length - prefix.Length);
+				CompletePath(prefix, suffix);
+			} else {
+				int idx = Math.Max(line.LastIndexOf(' '), line.LastIndexOf('\t'));
+				string prefix = line.Substring(0, idx + 1);
+				string suffix = line.Substring(idx + 1, line.Length - prefix.Length);
+				CompletePath(prefix, suffix);
 			}
 		}
 
 		// --------------------------------------------------------------------
 		// CLASS SPECIFIC UTILITIES
 		// --------------------------------------------------------------------
+
+		protected void CompletePath(string linePrefix, string lineSuffix) {
+			if (lineSuffix.Contains("\\") || lineSuffix.Contains("/")) {
+				int idx = Math.Max(lineSuffix.LastIndexOf("\\"), lineSuffix.LastIndexOf("/"));
+				string dir = lineSuffix.Substring(0, idx + 1);
+				string prefix = lineSuffix.Substring(idx + 1, lineSuffix.Length - dir.Length);
+				string[] files = GetFileList(dir);
+
+				List<string> commonPrefixFiles = new List<string>();
+				foreach (string file in files)
+					if (file.StartsWith(prefix, StringComparison.CurrentCultureIgnoreCase))
+						commonPrefixFiles.Add(file);
+				if (commonPrefixFiles.Count > 0) {
+					string commonPrefix = GetCommonPrefix(commonPrefixFiles.ToArray());
+					if (commonPrefix == prefix) {
+						foreach (string file in commonPrefixFiles)
+							Text += "\n" + file;
+						InsertNewPrompt();
+						Text += linePrefix + lineSuffix;
+						CaretIndex = Text.Length;
+					} else {
+						Text = Text.Remove(LastPomptIndex);
+						Text += linePrefix + dir + commonPrefix;
+						CaretIndex = Text.Length;
+					}
+				}
+			}
+		}
 
 		protected string GetTextWithPromptSuffix(string suffix) {
 			string ret = Text.Substring(0, LastPomptIndex);
@@ -258,6 +301,31 @@ namespace AurelienRibon.Ui.Terminal {
 					if (char.ToLower(str[i]) != char.ToLower(shortestStr[i]))
 						return shortestStr.Substring(0, i);
 			return shortestStr;
+		}
+
+		protected string[] GetFileList(string dir) {
+			if (!Directory.Exists(dir))
+				return new string[0];
+			string[] dirs = Directory.GetDirectories(dir);
+			string[] files = Directory.GetFiles(dir);
+
+			for (int i = 0; i < dirs.Length; i++)
+				dirs[i] = Path.GetFileName(dirs[i]) + "\\";
+			for (int i = 0; i < files.Length; i++)
+				files[i] = Path.GetFileName(files[i]);
+
+			List<string> ret = new List<string>();
+			ret.AddRange(dirs);
+			ret.AddRange(files);
+			return ret.ToArray();
+		}
+
+		protected string[] GetAssociatedFiles(string prefix, string dir) {
+			List<string> ret = new List<string>();
+			foreach (var file in GetFileList(dir))
+				if (file.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase))
+					ret.Add(file);
+			return ret.ToArray();
 		}
 
 		// --------------------------------------------------------------------
