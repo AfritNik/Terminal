@@ -247,7 +247,7 @@ namespace AurelienRibon.Ui.Terminal {
 				int idx = Math.Max(lineSuffix.LastIndexOf("\\"), lineSuffix.LastIndexOf("/"));
 				string dir = lineSuffix.Substring(0, idx + 1);
 				string prefix = lineSuffix.Substring(idx + 1, lineSuffix.Length - dir.Length);
-				string[] files = GetFileList(dir);
+				string[] files = GetFileList(dir, lineSuffix[idx] == '\\');
 
 				List<string> commonPrefixFiles = new List<string>();
 				foreach (string file in files)
@@ -303,28 +303,20 @@ namespace AurelienRibon.Ui.Terminal {
 			return shortestStr;
 		}
 
-		protected string[] GetFileList(string dir) {
+		protected string[] GetFileList(string dir, bool useAntislash) {
 			if (!Directory.Exists(dir))
 				return new string[0];
 			string[] dirs = Directory.GetDirectories(dir);
 			string[] files = Directory.GetFiles(dir);
 
 			for (int i = 0; i < dirs.Length; i++)
-				dirs[i] = Path.GetFileName(dirs[i]) + "\\";
+				dirs[i] = Path.GetFileName(dirs[i]) + (useAntislash ? "\\" : "/");
 			for (int i = 0; i < files.Length; i++)
 				files[i] = Path.GetFileName(files[i]);
 
 			List<string> ret = new List<string>();
 			ret.AddRange(dirs);
 			ret.AddRange(files);
-			return ret.ToArray();
-		}
-
-		protected string[] GetAssociatedFiles(string prefix, string dir) {
-			List<string> ret = new List<string>();
-			foreach (var file in GetFileList(dir))
-				if (file.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase))
-					ret.Add(file);
 			return ret.ToArray();
 		}
 
